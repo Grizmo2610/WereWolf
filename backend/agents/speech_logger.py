@@ -16,7 +16,7 @@ _logger = logging.getLogger("werewolf")
 _logger.setLevel(logging.INFO)
 if not _logger.handlers:
     fmt = logging.Formatter("%(message)s")
-    log_path = os.path.join(log_dir, f"{datetime.date.today().isoformat()}.log")
+    log_path = os.path.join(log_dir, f"{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M')}.log")
     file_handler = logging.FileHandler(log_path, encoding="utf-8")
     file_handler.setFormatter(fmt)
     _logger.addHandler(file_handler)
@@ -38,7 +38,7 @@ class SpeechLogger:
                    reasoning: str, intent: str, channel: str = "day") -> None:
         tag = "THINK" if channel == "day" else "NIGHT_CHAT_THINK"
         _logger.info(
-            f"[{self._ts()}] [ROOM {self.room_code}] [Player {player_name}/{provider_name}] "
+            f"[INFO][{self._ts()}] [ROOM {self.room_code}] [Player {player_name}/{provider_name}] "
             f'{tag} will_speak={will_speak} reasoning="{reasoning}" intent="{intent}"'
         )
         row = SpeechLog(
@@ -56,7 +56,7 @@ class SpeechLogger:
                    channel: str = "day") -> None:
         tag = "SPEAK" if channel == "day" else "NIGHT_CHAT_SPEAK"
         _logger.info(
-            f"[{self._ts()}] [ROOM {self.room_code}] [Player {player_name}/{provider_name}] "
+            f"[INFO][{self._ts()}] [ROOM {self.room_code}] [Player {player_name}/{provider_name}] "
             f'{tag} "{spoken_text}"'
         )
         row = SpeechLog(
@@ -69,11 +69,11 @@ class SpeechLogger:
         self.session.commit()
 
     def log_action(self, player_id: str, player_name: str, provider_name: str, action_type: str,
-                    target_id: str | None, target_name: str | None, reason: str) -> None:
+                     target_id: str | None, target_name: str | None, reason: str) -> None:
         role_hint = action_type.replace("_", " ")
         target_display = target_name or "không ai"
         _logger.info(
-            f"[{self._ts()}] [ROOM {self.room_code}] [Player {player_name}/{provider_name}] "
+            f"[INFO][{self._ts()}] [ROOM {self.room_code}] [Player {player_name}/{provider_name}] "
             f'{role_hint.upper()} chọn "{target_display}" vì "{reason}"'
         )
         row = ActionLog(
