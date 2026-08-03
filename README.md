@@ -54,3 +54,20 @@ python run.py
 | OpenRouter/OpenAI | `OPENAI_API_KEYS=sk-or-...` | Fallback |
 | Ollama (local) | `OLLAMA_ENABLED=true` | phi3:mini mặc định |
 | Qwen vLLM | `QWEN_VLLM_ENABLED=true` | Self-hosted |
+
+## Road Map
+
+* [x] Chế độ chơi cơ bản với các key
+* [] Cho Agent có suy nghĩ và cách hành động như con người
+* [] Kịch bản mở rộng
+    * [] Thêm nhân vật mở rộng
+    * [] Thêm kịch bản mở rộng
+    * [] Thêm kịch bản tự do
+* [] Giao diện hiển thị mới
+* [] Cập nhật assets với các hình ảnh nhân vật
+* [] Thêm tính năng cho agent + admin
+* [] Nhiều người chơi
+    * [] Đăng nhập và database
+    * [] Admin cấp tài khoản và cấp phát
+    * [] Tự tạo tải khoản và đặt tên
+* [] Realease
