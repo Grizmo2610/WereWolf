@@ -1,0 +1,193 @@
+/* ═══════════════════════════════════════════════════════════
+   Ma Sói Online — Custom Stylesheet
+   Palette: dusk gradient (teal → coral → gold)
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --color-1: #11516f;
+  --color-2: #267e96;
+  --color-3: #369daf;
+  --color-4: #64b5bf;
+  --color-5: #a6bbbb;
+  --color-6: #e68d81;
+  --color-7: #f2b8a0;
+  --color-8: #f5cb9c;
+  --color-9: #fbd384;
+  --color-10: #f3d8bb;
+  --bg-dark: #06101a;
+  --bg-card: #0c1c26cc;
+  --border: #11516f;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: "Times New Roman", Times, serif;
+  background-color: var(--bg-dark);
+  color: var(--color-10);
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-2); }
+
+/* ── Chat bubbles ───────────────────────────────────────── */
+.chat-line {
+  border-left: 2px solid var(--color-3);
+  padding: 4px 0 4px 12px;
+  margin-bottom: 8px;
+  animation: fadeIn 0.25s ease;
+}
+.chat-line .name {
+  color: var(--color-9);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.chat-line .text {
+  color: var(--color-10);
+  line-height: 1.45;
+  font-size: 0.875rem;
+}
+
+/* ── System / info lines ───────────────────────────────── */
+.system-line {
+  color: var(--color-4);
+  font-size: 0.78rem;
+  font-style: italic;
+  padding: 3px 0 3px 12px;
+  border-left: 2px solid var(--color-1);
+  margin-bottom: 6px;
+  animation: fadeIn 0.2s ease;
+}
+
+/* ── Event banners ─────────────────────────────────────── */
+.event-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 8px;
+  margin: 8px 0;
+  letter-spacing: 0.03em;
+  animation: slideIn 0.3s ease;
+}
+.event-icon { font-size: 1rem; flex-shrink: 0; }
+.event-text { line-height: 1.35; }
+
+.event-night {
+  background: rgba(17, 81, 111, 0.35);
+  border-left: 3px solid var(--color-1);
+  color: var(--color-4);
+}
+.event-night-end {
+  background: rgba(251, 211, 132, 0.1);
+  border-left: 3px solid var(--color-9);
+  color: var(--color-9);
+}
+.event-death {
+  background: rgba(230, 141, 129, 0.15);
+  border-left: 3px solid var(--color-6);
+  color: var(--color-7);
+}
+.event-execute {
+  background: rgba(245, 203, 156, 0.12);
+  border-left: 3px solid var(--color-8);
+  color: var(--color-8);
+}
+.event-vote {
+  background: rgba(54, 157, 175, 0.12);
+  border-left: 3px solid var(--color-3);
+  color: var(--color-4);
+}
+.event-gameover {
+  background: rgba(251, 211, 132, 0.18);
+  border: 1px solid var(--color-9);
+  color: var(--color-9);
+  font-size: 0.9rem;
+  justify-content: center;
+  text-align: center;
+}
+
+/* ── Seat SVG states ───────────────────────────────────── */
+.seat-dead { opacity: 0.35; filter: grayscale(1); transition: opacity 0.5s; }
+.seat-dead circle { stroke: var(--color-6) !important; }
+
+/* ── Form inputs ───────────────────────────────────────── */
+select, input[type="number"], input[type="text"] {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+select:focus, input:focus {
+  outline: none;
+  border-color: var(--color-3) !important;
+  box-shadow: 0 0 0 2px rgba(54, 157, 175, 0.2);
+}
+
+/* ── Phase badge pulse (night) ─────────────────────────── */
+.phase-night { animation: pulseDim 3s ease-in-out infinite; }
+
+/* ── Animations ────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulseDim {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+
+/* ── Lobby card ────────────────────────────────────────── */
+.lobby-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 40px rgba(17, 81, 111, 0.15);
+}
+
+/* ── Game header ───────────────────────────────────────── */
+.game-header {
+  background: rgba(6, 16, 26, 0.8);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+
+/* ── Panel cards ───────────────────────────────────────── */
+.panel-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 0 20px rgba(17, 81, 111, 0.06);
+}
+
+/* ── Button ─────────────────────────────────────────────── */
+.btn-primary {
+  background: var(--color-2);
+  color: var(--color-10);
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 12px 24px;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  box-shadow: 0 0 20px rgba(38, 126, 150, 0.25);
+}
+.btn-primary:hover {
+  background: var(--color-3);
+  box-shadow: 0 0 30px rgba(54, 157, 175, 0.4);
+  transform: translateY(-1px);
+}
+.btn-primary:active { transform: translateY(0); }
+
+/* ── Seat tooltip on hover ─────────────────────────────── */
+.seat-group { cursor: default; }
+.seat-group:hover circle { filter: brightness(1.3); }

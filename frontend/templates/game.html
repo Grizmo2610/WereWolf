@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ma Sói Online — Phòng {{ room_code }}</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="/static/css/custom.css">
+<style>
+  body {
+    background:
+      radial-gradient(ellipse at 10% 90%, rgba(17,81,111,0.15) 0%, transparent 45%),
+      radial-gradient(ellipse at 90% 10%, rgba(251,211,132,0.05) 0%, transparent 45%),
+      #06101a;
+  }
+
+  /* Phase badge variants */
+  .phase-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid;
+    transition: all 0.4s ease;
+  }
+  .phase-badge--night {
+    border-color: #267e96;
+    background: rgba(17,81,111,0.3);
+    color: #64b5bf;
+  }
+  .phase-badge--day {
+    border-color: #fbd384;
+    background: rgba(251,211,132,0.08);
+    color: #fbd384;
+  }
+  .phase-badge--ended {
+    border-color: #369daf;
+    background: rgba(54,157,175,0.1);
+    color: #a6bbbb;
+  }
+  .phase-badge:not([class*="phase-badge--"]) {
+    border-color: #11516f;
+    background: transparent;
+    color: #a6bbbb;
+  }
+
+  /* Player count pill */
+  #player-count-pill {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(17,81,111,0.35);
+    border: 1px solid rgba(17,81,111,0.5);
+    color: #64b5bf;
+    letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body class="min-h-screen text-[#f3d8bb] overflow-hidden">
+
+<!-- ── Header ──────────────────────────────────────────────────── -->
+<header class="game-header flex items-center justify-between px-5 py-2.5 h-[50px]">
+  <div class="flex items-center gap-3">
+    <span class="text-sm font-semibold tracking-wide text-[#f3d8bb]">Ma Sói Online</span>
+    <span class="text-[#11516f] select-none">·</span>
+    <span class="text-xs text-[#fbd384] tracking-widest font-mono uppercase">{{ room_code }}</span>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <span id="player-count-pill">— người</span>
+    <div id="phase-badge" class="phase-badge">—</div>
+  </div>
+</header>
+
+<!-- ── Main layout ──────────────────────────────────────────────── -->
+<main class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-3 p-3"
+      style="height: calc(100vh - 50px);">
+
+  <!-- Left: Seat circle -->
+  <section class="panel-card relative overflow-hidden min-h-[300px]">
+    <!-- ambient glow -->
+    <div class="absolute inset-0 pointer-events-none"
+         style="background: radial-gradient(circle at 50% 50%,
+                rgba(54,157,175,0.07) 0%, transparent 65%);"></div>
+    <svg id="seat-circle" viewBox="0 0 400 400"
+         class="w-full h-full drop-shadow-[0_0_20px_rgba(54,157,175,0.05)]"
+         style="max-height: calc(100vh - 76px);"></svg>
+  </section>
+
+  <!-- Right: Chat / event feed -->
+  <section class="panel-card flex flex-col min-h-0">
+
+    <!-- Feed header -->
+    <div class="flex items-center gap-2 px-4 pt-3 pb-2.5 border-b border-[#11516f]">
+      <span class="w-1.5 h-1.5 rounded-full bg-[#fbd384] animate-pulse"></span>
+      <p class="text-[10px] uppercase tracking-[0.18em] text-[#fbd384] font-semibold">
+        Diễn biến ván chơi
+      </p>
+    </div>
+
+    <!-- Scrollable feed -->
+    <div id="chat-panel"
+         class="flex-1 overflow-y-auto px-4 py-3 space-y-1">
+    </div>
+
+  </section>
+</main>
+
+<script>
+  window.ROOM_CODE = "{{ room_code }}";
+</script>
+<script src="/static/js/seat-circle.js"></script>
+<script src="/static/js/chat-panel.js"></script>
+<script src="/static/js/ws-client.js"></script>
+<script>
+  // Update player count pill when state arrives
+  const _origUpdatePhaseBadge = updatePhaseBadge;
+  // Patch ws-client to also update pill
+  document.addEventListener("DOMContentLoaded", () => {});
+  // Hook: override renderSeatCircle to also update pill
+  const _origRenderSeat = renderSeatCircle;
+  window.renderSeatCircle = function(players) {
+    _origRenderSeat(players);
+    const pill = document.getElementById("player-count-pill");
+    if (pill) {
+      const alive = players.filter(p => p.alive).length;
+      pill.textContent = `${alive}/${players.length} người`;
+    }
+  };
+</script>
+</body>
+</html>
