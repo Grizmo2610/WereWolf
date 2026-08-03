@@ -58,16 +58,19 @@ python run.py
 ## Road Map
 
 * [x] Chế độ chơi cơ bản với các key
-* [] Cho Agent có suy nghĩ và cách hành động như con người
-* [] Kịch bản mở rộng
-    * [] Thêm nhân vật mở rộng
-    * [] Thêm kịch bản mở rộng
-    * [] Thêm kịch bản tự do
-* [] Giao diện hiển thị mới
-* [] Cập nhật assets với các hình ảnh nhân vật
-* [] Thêm tính năng cho agent + admin
-* [] Nhiều người chơi
-    * [] Đăng nhập và database
-    * [] Admin cấp tài khoản và cấp phát
-    * [] Tự tạo tải khoản và đặt tên
-* [] Realease
+* [ ] Cho Agent có suy nghĩ và cách hành động như con người
+* [ ] Kịch bản mở rộng
+    * [ ] Thêm nhân vật mở rộng
+    * [ ] Thêm kịch bản mở rộng
+    * [ ] Thêm kịch bản tự do
+* [ ] Giao diện hiển thị mới
+* [ ] Cập nhật assets với các hình ảnh nhân vật
+* [ ] Thêm tính năng cho agent + admin
+* [ ] Nhiều người chơi
+    * [ ] Đăng nhập và database
+    * [ ] Admin cấp tài khoản và cấp phát
+    * [ ] Tự tạo tải khoản và đặt tên
+* [ ] Realease Hỗ trọ tiếng việt
+* [ ] Hỗ trợ Đa ngôn ngữ
+    * [ ] Tiếng anh
+    * [ ] Các ngôn ngữ khác
