@@ -32,8 +32,6 @@ class Settings(BaseSettings):
 
     max_turns_per_day: int = 40
     discussion_timeout_seconds: int = 300
-    night_discussion_min_seconds: int = 30
-    night_discussion_max_turns: int = 20
     db_path: str = "./backend/logs/game.db"
     log_dir: str = "./backend/logs"
 

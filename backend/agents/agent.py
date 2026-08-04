@@ -8,8 +8,6 @@ from agents.key_pool import KeyPool
 from agents.prompts import (
     PERSONALITY_TRAITS,
     night_action_prompt,
-    night_discussion_speak_prompt,
-    night_discussion_think_prompt,
     speak_prompt,
     system_prompt,
     think_prompt,
@@ -20,7 +18,6 @@ from config.settings import get_settings
 logger = logging.getLogger("werewolf")
 
 PUBLIC_MEMORY_TAIL_SIZE = 30
-NIGHT_MEMORY_TAIL_SIZE = 30
 
 
 @dataclass
@@ -45,7 +42,6 @@ class Agent:
         self.role_id = role_id
         self.personality = personality or random.choice(PERSONALITY_TRAITS)
         self.public_memory: list[str] = []
-        self.night_memory: list[str] = []
         self.private_context: str = ""
         self.spoken_today: bool = False
         self.total_words_today: int = 0
@@ -114,6 +110,31 @@ class Agent:
             return target.player_id
         return None
 
+    @staticmethod
+    def _death_summary(game) -> str:
+        """Trả về chuỗi tóm tắt ai đã chết và lý do (thông tin công khai).
+        Dùng để inject vào prompt, tránh model phải đoán mò hay hallucinate.
+        """
+        CAUSE_LABEL = {
+            "wolf_bite": "bị sói cắn chết đêm",
+            "voted_out": "bị làng treo cổ ngày",
+            "hunter_shot": "bị Thợ Săn bắn",
+            "witch_poison": "bị đầu độc đêm",
+            "lover_death": "chết vì người yêu bị giết",
+            "terrorist_explosion": "chết vì Khủng Bố",
+        }
+        dead = [p for p in game.players if not p.alive]
+        if not dead:
+            return ""
+        lines = []
+        for p in dead:
+            cause = getattr(p, "death_cause", None) or "unknown"
+            round_died = getattr(p, "died_round", None)
+            label = CAUSE_LABEL.get(cause, cause)
+            round_str = f" (vòng {round_died})" if round_died else ""
+            lines.append(f"- {p.display_name} (ghế {p.seat_id}): {label}{round_str}")
+        return "\n".join(lines)
+
     def _random_vote_target(self, game) -> str | None:
         alive = [p for p in game.alive_players() if p.player_id != self.player_id]
         if not alive:
@@ -131,13 +152,13 @@ class Agent:
     def think(self, game) -> ThinkResult:
         tail = "\n".join(self.public_memory[-PUBLIC_MEMORY_TAIL_SIZE:])
         round_number = getattr(game, "round_number", 0)
-        deaths = len([p for p in game.players if not p.alive])
+        death_summary = self._death_summary(game)
         settings = get_settings()
         retries = settings.api_retry_count
 
         for attempt in range(retries + 1):
             try:
-                raw = self._call(think_prompt(self.private_context, tail, round_number, deaths))
+                raw = self._call(think_prompt(self.private_context, tail, round_number, death_summary))
                 data = self._parse_json(raw)
                 return ThinkResult(
                     will_speak=bool(data.get("will_speak", False)),
@@ -169,9 +190,6 @@ class Agent:
 
     def decide_night_action(self, game) -> ActionDecision:
         tail = "\n".join(self.public_memory[-PUBLIC_MEMORY_TAIL_SIZE:])
-        if self.night_memory:
-            night_tail = "\n".join(self.night_memory[-NIGHT_MEMORY_TAIL_SIZE:])
-            tail = f"{tail}\n\n<trao đổi riêng với đồng bọn>\n{night_tail}\n</trao đổi riêng với đồng bọn>"
         roster = self._roster_text(game)
         round_number = getattr(game, "round_number", 0)
         settings = get_settings()
@@ -197,13 +215,13 @@ class Agent:
         tail = "\n".join(self.public_memory[-PUBLIC_MEMORY_TAIL_SIZE:])
         roster = self._roster_text(game)
         round_number = getattr(game, "round_number", 0)
-        deaths = len([p for p in game.players if not p.alive])
+        death_summary = self._death_summary(game)
         settings = get_settings()
         retries = settings.api_retry_count
 
         for attempt in range(retries + 1):
             try:
-                raw = self._call(vote_think_prompt(self.private_context, tail, roster, round_number, deaths))
+                raw = self._call(vote_think_prompt(self.private_context, tail, roster, round_number, death_summary))
                 data = self._parse_json(raw)
                 target_id = self._resolve_seat_target(game, data)
                 return ActionDecision(target_id=target_id, reason=str(data.get("reason", "")))
@@ -217,49 +235,5 @@ class Agent:
 
         return ActionDecision(target_id=self._random_vote_target(game), reason="parse_error_random")
 
-    def discuss_at_night(self, game) -> ThinkResult:
-        tail = "\n".join(self.night_memory[-NIGHT_MEMORY_TAIL_SIZE:])
-        round_number = getattr(game, "round_number", 0)
-        settings = get_settings()
-        retries = settings.api_retry_count
-
-        for attempt in range(retries + 1):
-            try:
-                raw = self._call(night_discussion_think_prompt(self.private_context, tail, round_number))
-                data = self._parse_json(raw)
-                return ThinkResult(
-                    will_speak=bool(data.get("will_speak", False)),
-                    reasoning=str(data.get("reasoning", "")),
-                    intent=str(data.get("intent", "")),
-                )
-            except json.JSONDecodeError:
-                logger.warning("Agent %s discuss_night: parse JSON thất bại lần %d", self.player_id, attempt + 1)
-                if attempt >= retries:
-                    return ThinkResult(will_speak=False, reasoning="parse_error", intent="")
-            except Exception as exc:
-                logger.error("Agent %s discuss_night: lỗi %s", self.player_id, exc)
-                return ThinkResult(will_speak=False, reasoning="api_error", intent="")
-
-        return ThinkResult(will_speak=False, reasoning="parse_error", intent="")
-
-    def speak_night(self, think_result: ThinkResult) -> str:
-        settings = get_settings()
-        retries = settings.api_retry_count
-        for attempt in range(retries + 1):
-            try:
-                raw = self._call(night_discussion_speak_prompt(think_result.intent, self.personality))
-                return raw.strip()
-            except Exception as exc:
-                logger.warning("Agent %s speak_night: lỗi lần %d: %s", self.player_id, attempt + 1, exc)
-                if attempt >= retries:
-                    return ""
-        return ""
-
     def observe_public_line(self, line: str) -> None:
         self.public_memory.append(line)
-
-    def observe_night_line(self, line: str) -> None:
-        self.night_memory.append(line)
-
-    def reset_night_memory(self) -> None:
-        self.night_memory = []

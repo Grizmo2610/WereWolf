@@ -77,7 +77,7 @@ SCENARIOS: dict[str, Scenario] = {
         fixed_roles=["werewolf", "werewolf", "werewolf", "alpha_wolf", "wolf_cub",
                       "lone_wolf", "wolf_seer", "medium", "terrorist", "gambler",
                       "vampire", "cult_leader", "cupid", "seer", "guard", "witch",
-                      "hunter", "huntress", "detective", "fool", "saboteur"],
+                      "hunter", "huntress", "detective", "fool"],
         fill_pool=["villager"],
         custom_rules={"forbid_role_asking": True, "all_power_roles": True},
         win_condition_fn=default_win_condition, # TODO

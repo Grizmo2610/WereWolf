@@ -34,6 +34,40 @@ class SpeechLogger:
     def _ts(self) -> str:
         return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    # ------------------------------------------------------------------
+    # Phần mới: banner phase & danh sách role đầu ván
+    # ------------------------------------------------------------------
+
+    def log_game_start(self, players) -> None:
+        """In danh sách toàn bộ nhân vật + role ngay khi ván bắt đầu."""
+        sep = "=" * 60
+        lines = [
+            sep,
+            f"[{self._ts()}] [ROOM {self.room_code}] 🎮 VÁN CHƠI BẮT ĐẦU — DANH SÁCH NHÂN VẬT",
+            sep,
+        ]
+        for p in sorted(players, key=lambda x: x.seat_id):
+            from roles.base import get_role
+            role_def = get_role(p.role_id)
+            faction_label = {"village": "Dân làng", "wolf": "Sói", "neutral": "Trung lập"}.get(
+                p.faction.value, p.faction.value
+            )
+            lines.append(
+                f"  Ghế {p.seat_id:>2} | {p.display_name:<20} | "
+                f"{role_def.display_name:<18} ({p.role_id}) | Phe: {faction_label}"
+            )
+        lines.append(sep)
+        for line in lines:
+            _logger.info(line)
+
+    def log_phase(self, label: str) -> None:
+        """In banner phân cách phase: chuyển ngày/đêm, hành động đêm từng vai."""
+        _logger.info(f"[{self._ts()}] [ROOM {self.room_code}] >>> {label}")
+
+    # ------------------------------------------------------------------
+    # Các method cũ — giữ nguyên
+    # ------------------------------------------------------------------
+
     def log_think(self, player_id: str, player_name: str, provider_name: str, will_speak: bool,
                    reasoning: str, intent: str, channel: str = "day") -> None:
         tag = "THINK" if channel == "day" else "NIGHT_CHAT_THINK"

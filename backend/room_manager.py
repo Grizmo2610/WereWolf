@@ -23,8 +23,6 @@ NIGHT_ACTION_ORDER = [
     (ActionType.WITCH_SAVE, "witch"),
 ]
 
-COORDINATED_ROLES = {"werewolf"}
-
 
 class Room:
     def __init__(self, room_code: str, game: Game, agents: dict[str, Agent],
@@ -172,6 +170,9 @@ async def run_game_loop(room: Room) -> None:
     session = SessionLocal()
     logger = SpeechLogger(session, room.db_game_id, room.room_code)
     try:
+        # In danh sách nhân vật + role ngay khi ván bắt đầu
+        logger.log_game_start(room.game.players)
+
         while room.game.phase != Phase.ENDED:
             await run_night(room, logger)
             winner = room.game.check_winner()
@@ -181,10 +182,12 @@ async def run_game_loop(room: Room) -> None:
 
             room.game.advance_to_day()
             await room.broadcast_state()
+            logger.log_phase(f"☀️  CHUYỂN SANG BAN NGÀY — Ngày {room.game.round_number}")
             await run_day_discussion(room, logger)
 
             room.game.advance_to_vote()
             await room.broadcast_state()
+            logger.log_phase(f"🗳️  BỎ PHIẾU TREO CỔ — Ngày {room.game.round_number}")
             await run_vote(room, logger)
             winner = room.game.check_winner()
             if winner:
@@ -203,7 +206,18 @@ async def run_game_loop(room: Room) -> None:
 
 async def run_night(room: Room, logger: SpeechLogger) -> None:
     game = room.game
+    logger.log_phase(f"🌙 CHUYỂN SANG BAN ĐÊM — Đêm {game.round_number}")
     await room.broadcast_event(f"🌙 Đêm {game.round_number} bắt đầu — làng chìm vào bóng tối.", event="night_start")
+
+    # Nhãn hiển thị cho từng action type
+    ACTION_LABEL = {
+        "guard_protect": "🛡️  BẢO VỆ hành động",
+        "seer_check":    "🔮 TIÊN TRI soi",
+        "wolf_attack":   "🐺 SÓI vote mục tiêu",
+        "witch_save":    "🧪 PHÙ THỦY dùng thuốc cứu",
+        "witch_poison":  "☠️  PHÙ THỦY dùng thuốc độc",
+        "hunter_shoot":  "🏹 THỢ SĂN bắn",
+    }
 
     submissions: list[NightActionSubmission] = []
     for action_type, role_id in NIGHT_ACTION_ORDER:
@@ -211,8 +225,9 @@ async def run_night(room: Room, logger: SpeechLogger) -> None:
         if not actors:
             continue
 
-        if role_id in COORDINATED_ROLES and len(actors) > 1:
-            await run_faction_night_discussion(room, actors, logger)
+        label = ACTION_LABEL.get(action_type.value, f"{role_id.upper()} hành động")
+        actor_names = ", ".join(p.display_name for p in actors)
+        logger.log_phase(f"{label} ({actor_names})")
 
         for player in actors:
             agent = room.agents[player.player_id]
@@ -246,38 +261,6 @@ async def run_night(room: Room, logger: SpeechLogger) -> None:
         )
 
 
-async def run_faction_night_discussion(room: Room, actors: list, logger: SpeechLogger) -> None:
-    game = room.game
-    for player in actors:
-        room.agents[player.player_id].reset_night_memory()
-
-    loop = asyncio.get_event_loop()
-    start = loop.time()
-    max_turns = settings.night_discussion_max_turns
-
-    for turn in range(max_turns):
-        player = actors[turn % len(actors)]
-        agent = room.agents[player.player_id]
-        provider_name = room.key_pool.get_provider_name(player.player_id)
-        think_result = await asyncio.to_thread(agent.discuss_at_night, game)
-        logger.log_think(player.player_id, player.display_name, provider_name,
-                          think_result.will_speak, think_result.reasoning, think_result.intent,
-                          channel="night")
-        if think_result.will_speak:
-            text = await asyncio.to_thread(agent.speak_night, think_result)
-            logger.log_speak(player.player_id, player.display_name, provider_name, text, channel="night")
-            line = f"{player.display_name}: {text}"
-            for other in actors:
-                room.agents[other.player_id].observe_night_line(line)
-        delay = settings.turn_delay_seconds.get(provider_name, 2)
-        await asyncio.sleep(delay)
-
-    elapsed = loop.time() - start
-    remaining = settings.night_discussion_min_seconds - elapsed
-    if remaining > 0:
-        await asyncio.sleep(remaining)
-
-
 async def handle_hunter_shot(room: Room, logger: SpeechLogger) -> None:
     game = room.game
     hunter_id = game.pending_hunter_shot
@@ -286,6 +269,7 @@ async def handle_hunter_shot(room: Room, logger: SpeechLogger) -> None:
     if not agent or not hunter:
         game.pending_hunter_shot = None
         return
+    logger.log_phase(f"🏹 THỢ SĂN bắn ({hunter.display_name})")
     decision = await asyncio.to_thread(agent.decide_night_action, game)
     logger.log_action(hunter_id, hunter.display_name, room.key_pool.get_provider_name(hunter_id),
                        ActionType.HUNTER_SHOOT.value, decision.target_id,
@@ -306,6 +290,7 @@ async def run_day_discussion(room: Room, logger: SpeechLogger) -> None:
     loop = asyncio.get_event_loop()
     deadline = loop.time() + settings.discussion_timeout_seconds
     min_turn = settings.min_turn_seconds
+    is_first_turn = True  # người đầu tiên bắt buộc phải nói
 
     while loop.time() < deadline and scheduler.turns_used < settings.max_turns_per_day:
         alive_ids = {p.player_id for p in game.alive_players()}
@@ -321,6 +306,12 @@ async def run_day_discussion(room: Room, logger: SpeechLogger) -> None:
         player = game.get_player(player_id)
         provider_name = room.key_pool.get_provider_name(player_id)
         think_result = await asyncio.to_thread(agent.think, game)
+
+        # Người đầu tiên lên tiếng trong ngày bắt buộc phải nói
+        if is_first_turn:
+            think_result.will_speak = True
+            is_first_turn = False
+
         logger.log_think(player_id, player.display_name, provider_name, think_result.will_speak,
                           think_result.reasoning, think_result.intent)
         if think_result.will_speak:

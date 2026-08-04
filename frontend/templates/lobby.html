@@ -44,15 +44,15 @@
         <label class="block text-[10px] uppercase tracking-[0.15em] text-[#64b5bf] mb-2.5 font-semibold">
           Kịch bản
         </label>
-        <select name="scenario_id"
+        <select id="scenario_select" name="scenario_id"
                 class="w-full bg-[#06101a] border border-[#11516f] rounded-lg px-3.5 py-2.5
                        text-[#f3d8bb] text-sm cursor-pointer">
           {% for s in scenarios %}
-          <option value="{{ s.scenario_id }}">
+          <option value="{{ s.scenario_id }}" data-min="{{ s.min_players }}" data-max="{{ s.max_players }}">
             {{ s.display_name }} — {{ s.min_players }}–{{ s.max_players }} người
           </option>
           {% endfor %}
-          <option value="random">🎲 Ngẫu nhiên</option>
+          <option value="random" data-min="9" data-max="20">🎲 Ngẫu nhiên</option>
         </select>
       </div>
 
@@ -61,7 +61,7 @@
         <label class="block text-[10px] uppercase tracking-[0.15em] text-[#64b5bf] mb-2.5 font-semibold">
           Số người chơi
         </label>
-        <input type="number" name="total_players" value="9" min="9" max="20"
+        <input id="total_players_input" type="number" name="total_players" value="9" min="9" max="20"
                class="w-full bg-[#06101a] border border-[#11516f] rounded-lg px-3.5 py-2.5
                       text-[#f3d8bb] text-sm">
         <p class="text-[10px] text-[#64b5bf] mt-2 leading-relaxed opacity-70">
@@ -87,5 +87,22 @@
 </div>
 
 <script src="/static/js/lobby.js"></script>
+
+<script>
+(function () {
+  var sel = document.getElementById("scenario_select");
+  var inp = document.getElementById("total_players_input");
+  function sync() {
+    var opt = sel.options[sel.selectedIndex];
+    var mn = parseInt(opt.dataset.min || 9);
+    var mx = parseInt(opt.dataset.max || 20);
+    inp.min = mn;
+    inp.max = mx;
+    inp.value = mn;
+  }
+  sel.addEventListener("change", sync);
+  sync();
+})();
+</script>
 </body>
 </html>

@@ -33,3 +33,4 @@ logs/
 .env
 .sql
 .db
+.zip

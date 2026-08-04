@@ -49,19 +49,28 @@ def _memory_block(public_memory_tail: str, round_number: int) -> str:
     if not public_memory_tail.strip():
         if round_number <= 1:
             return "<những gì bạn đã nghe>\n(Ngày đầu tiên, chưa ai nói gì cả.)\n</những gì bạn đã nghe>"
-        return "<những gì bạn đã nghe>\n(Chưa nghe thêm gì mới.)\n</những gì bạn đã nghe>"
+        # round > 1 nhưng chưa ai nói trong buổi thảo luận này —
+        # nói rõ để tránh model mở đầu bằng "im ắng quá" / "chưa ai lên tiếng"
+        return "<những gì bạn đã nghe>\n(Buổi thảo luận hôm nay vừa bắt đầu, bạn là người đầu tiên lên tiếng.)\n</những gì bạn đã nghe>"
     return f"<những gì bạn đã nghe>\n{public_memory_tail}\n</những gì bạn đã nghe>"
 
 
-def _round_context(round_number: int, deaths_so_far: int) -> str:
-    if round_number <= 1 and deaths_so_far == 0:
+def _round_context(round_number: int, death_summary: str) -> str:
+    """
+    Trả về một đoạn ngắn mô tả trạng thái ván chơi cho đến thời điểm hiện tại.
+    - Nếu là ngày/đêm đầu tiên và chưa ai chết: thông báo rõ chưa có sự kiện gì.
+    - Các lượt sau: liệt kê ai đã chết (nếu có), tránh để model tưởng tượng ra.
+    """
+    if round_number <= 1 and not death_summary:
         return "(Đây là ngày đầu tiên của ván chơi. Chưa ai bị chết hay bị treo cổ.)"
+    if death_summary:
+        return f"<người đã chết từ đầu ván>\n{death_summary}\n</người đã chết từ đầu ván>"
     return ""
 
 
 def think_prompt(private_context: str, public_memory_tail: str,
-                 round_number: int = 0, deaths_so_far: int = 0) -> str:
-    ctx = _round_context(round_number, deaths_so_far)
+                 round_number: int = 0, death_summary: str = "") -> str:
+    ctx = _round_context(round_number, death_summary)
     mem = _memory_block(public_memory_tail, round_number)
     ctx_block = f"\n{ctx}" if ctx else ""
     return f"""Đây là phần nghĩ, không phải nói.
@@ -81,8 +90,8 @@ Không mở đầu kiểu trang trọng, không lặp lại info ai cũng biết
 
 
 def vote_think_prompt(private_context: str, public_memory_tail: str, roster_text: str,
-                      round_number: int = 0, deaths_so_far: int = 0) -> str:
-    ctx = _round_context(round_number, deaths_so_far)
+                      round_number: int = 0, death_summary: str = "") -> str:
+    ctx = _round_context(round_number, death_summary)
     mem = _memory_block(public_memory_tail, round_number)
     ctx_block = f"\n{ctx}" if ctx else ""
     return f"""Đây là phần nghĩ, không phải nói.
@@ -115,26 +124,3 @@ def night_action_prompt(role_id: str, private_context: str, context_tail: str, r
 </danh sách người còn sống>
 Chọn mục tiêu phù hợp với vai trò và những gì bạn biết, bằng số ghế (seat).
 Trả JSON: {{"target_seat": số ghế hoặc null, "reason": "..."}}"""
-
-
-def night_discussion_think_prompt(private_context: str, night_memory_tail: str,
-                                   round_number: int = 0) -> str:
-    ctx_block = ""
-    if round_number <= 1 and not night_memory_tail.strip():
-        ctx_block = "\n(Đây là đêm đầu tiên, chưa có trao đổi nào trước đó.)"
-    return f"""Đây là phần nghĩ, không phải nói. Đây là kênh trao đổi RIÊNG chỉ đồng bọn của bạn
-nghe được, không ai khác trong làng biết cuộc trao đổi này.
-<private_context>
-{private_context}
-</private_context>{ctx_block}
-<trao đổi riêng gần nhất>
-{night_memory_tail if night_memory_tail.strip() else "(Chưa có trao đổi nào.)"}
-</trao đổi riêng gần nhất>
-Đang bàn bạc để thống nhất chọn mục tiêu đêm nay. Nghĩ ngắn gọn (tối đa 3 câu). Quyết định có nói không.
-Trả về đúng JSON: {{"will_speak": bool, "reasoning": "...", "intent": "..."}}"""
-
-
-def night_discussion_speak_prompt(intent: str, personality: str) -> str:
-    return f"""Đây là phần nói, không phải nghĩ. Đang nói trong kênh trao đổi RIÊNG với đồng bọn.
-Ý định vừa nghĩ: {intent}
-Nói ngắn gọn 1-2 câu, đúng tính cách {personality}, bàn về việc nên chọn ai."""
